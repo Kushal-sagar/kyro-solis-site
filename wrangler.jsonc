@@ -1,0 +1,28 @@
+{
+  // Cloudflare Worker config for the Kyro Solis Materials site.
+  // "name" MUST match the existing Cloudflare project so deploys update it in place.
+  "name": "ksmaterial",
+  "main": "worker.js",
+  "compatibility_date": "2025-01-01",
+
+  // Static site files. The Worker falls through to these via the ASSETS binding
+  // for any request that is not /api/enquiry.
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS"
+  },
+
+  // D1 database that stores every enquiry. Create it in the Cloudflare dashboard
+  // (Workers & Pages > D1) named "ksmaterials-enquiries", then paste its ID below.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ksmaterials-enquiries",
+      "database_id": "5cfdf3ef-d64c-4168-bce5-bab5bf90cd7a"
+    }
+  ]
+
+  // Email notifications are sent via the Resend API. The Worker reads the
+  // RESEND_API_KEY secret, which you add in the dashboard (Worker > Settings >
+  // Variables and Secrets) - it is NOT stored in this file.
+}

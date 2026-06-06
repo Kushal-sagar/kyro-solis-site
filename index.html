@@ -1055,6 +1055,20 @@
 
   function validateEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 
+  function mailtoFallback(d) {
+    var subject = encodeURIComponent('Website enquiry from ' + d.name + ', ' + d.company);
+    var body = encodeURIComponent(
+      'Name: ' + d.name + '\n' +
+      'Company: ' + d.company + '\n' +
+      'Email: ' + d.email + '\n' +
+      'Country: ' + d.country + '\n' +
+      'Product interest: ' + d.interests + '\n' +
+      'Application / use case: ' + d.usecase + '\n' +
+      'How they heard about us: ' + d.source
+    );
+    window.location.href = 'mailto:contact@ksmaterials.co?subject=' + subject + '&body=' + body;
+  }
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     var name = document.getElementById('f-name').value.trim();
@@ -1081,20 +1095,34 @@
     var interests = Array.from(form.querySelectorAll('input[name="interest"]:checked')).map(function (c) { return c.value; }).join(', ') || 'None selected';
     var source = document.getElementById('f-source').value || 'Not specified';
 
-    var subject = encodeURIComponent('Website enquiry from ' + name + ', ' + company);
-    var body = encodeURIComponent(
-      'Name: ' + name + '\n' +
-      'Company: ' + company + '\n' +
-      'Email: ' + email + '\n' +
-      'Country: ' + country + '\n' +
-      'Product interest: ' + interests + '\n' +
-      'Application / use case: ' + usecase + '\n' +
-      'How they heard about us: ' + source
-    );
-    window.location.href = 'mailto:contact@ksmaterials.co?subject=' + subject + '&body=' + body;
+    var payload = {
+      name: name, company: company, email: email, country: country,
+      interests: interests, usecase: usecase, source: source
+    };
 
-    form.style.display = 'none';
-    thankyou.classList.add('visible');
+    var submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+    if (submitBtn) { submitBtn.disabled = true; }
+
+    fetch('/api/enquiry', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (res) {
+        if (!res.ok) { throw new Error('Bad response'); }
+        return res.json();
+      })
+      .then(function () {
+        form.style.display = 'none';
+        thankyou.classList.add('visible');
+      })
+      .catch(function () {
+        // Backend unreachable: fall back to the visitor's email client so the lead is not lost.
+        if (submitBtn) { submitBtn.disabled = false; }
+        mailtoFallback(payload);
+        form.style.display = 'none';
+        thankyou.classList.add('visible');
+      });
   });
 
   // Clear errors on input
